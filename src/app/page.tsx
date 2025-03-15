@@ -11,7 +11,6 @@ import {
 import { Button } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
 import { FileIcon, FileTextIcon, FolderIcon, ImageIcon, UploadIcon } from "lucide-react"
-import { useRouter } from "next/navigation"
 
 // Define types for our file system
 type BaseItem = {
@@ -144,14 +143,13 @@ const formatDate = (dateString: string) => {
 
 export default function DriveClone() {
   const [currentPath, setCurrentPath] = useState<string[]>(["root"])
-  const router = useRouter()
 
   // Get current folder
   const getCurrentFolder = (): FolderItem => {
     // Make sure we always have a valid current folder ID
     if (currentPath.length === 0) {
       // Default to root if path is empty
-      const rootFolder = mockFileSystem["root"] as FolderItem;
+      const rootFolder = mockFileSystem.root as FolderItem;
       return rootFolder;
     }
     
@@ -294,7 +292,7 @@ export default function DriveClone() {
                     )}
                   </div>
                   <div className="flex items-center">{item.name}</div>
-                  <div className="text-right text-gray-400">{item.size || "--"}</div>
+                  <div className="text-right text-gray-400">{item.size ?? "--"}</div>
                   <div className="text-gray-400 w-32">{formatDate(item.createdAt)}</div>
                 </div>
               ))

@@ -32,7 +32,7 @@ export function ThemeProvider({
   }, [forcedTheme])
 
   const value = {
-    theme: forcedTheme || theme,
+    theme: forcedTheme ?? theme,
     setTheme: (newTheme: Theme) => {
       if (forcedTheme) return
       setTheme(newTheme)
