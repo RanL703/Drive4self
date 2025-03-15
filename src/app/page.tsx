@@ -13,8 +13,33 @@ import { Card, CardContent } from "~/components/ui/card"
 import { FileIcon, FileTextIcon, FolderIcon, ImageIcon, UploadIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 
-// Mock data structure
-const mockFileSystem = {
+// Define types for our file system
+type BaseItem = {
+  type: string;
+  name: string;
+  createdAt: string;
+  size: string | null;
+}
+
+type FolderItem = BaseItem & {
+  type: "folder";
+  children: string[];
+}
+
+type FileItem = BaseItem & {
+  type: "file";
+  extension: string;
+}
+
+type FileSystemItem = FolderItem | FileItem;
+
+// Add id property for UI rendering
+type ContentItem = FileSystemItem & {
+  id: string;
+}
+
+// Define mock file system with type
+const mockFileSystem: Record<string, FileSystemItem> = {
   root: {
     type: "folder",
     name: "My Drive",
@@ -95,7 +120,7 @@ const mockFileSystem = {
 }
 
 // Helper function to get file icon based on extension
-const getFileIcon = (extension) => {
+const getFileIcon = (extension: string) => {
   switch (extension) {
     case "jpg":
     case "png":
@@ -112,25 +137,53 @@ const getFileIcon = (extension) => {
 }
 
 // Format date
-const formatDate = (dateString) => {
+const formatDate = (dateString: string) => {
   const date = new Date(dateString)
   return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
 }
 
 export default function DriveClone() {
-  const [currentPath, setCurrentPath] = useState(["root"])
+  const [currentPath, setCurrentPath] = useState<string[]>(["root"])
   const router = useRouter()
 
   // Get current folder
-  const getCurrentFolder = () => {
-    const currentFolderId = currentPath[currentPath.length - 1]
-    return mockFileSystem[currentFolderId]
+  const getCurrentFolder = (): FolderItem => {
+    // Make sure we always have a valid current folder ID
+    if (currentPath.length === 0) {
+      // Default to root if path is empty
+      const rootFolder = mockFileSystem["root"] as FolderItem;
+      return rootFolder;
+    }
+    
+    const currentFolderId = currentPath[currentPath.length - 1];
+    
+    // TypeScript type narrowing
+    if (currentFolderId === undefined) {
+      throw new Error("Current folder ID is undefined");
+    }
+    
+    const folder = mockFileSystem[currentFolderId];
+    
+    if (!folder) {
+      throw new Error(`Folder not found: ${currentFolderId}`);
+    }
+    
+    if (folder.type !== "folder") {
+      throw new Error(`Expected a folder but got: ${folder.type}`);
+    }
+    
+    return folder;
   }
 
   // Get breadcrumb items
   const getBreadcrumbItems = () => {
     return currentPath.map((id, index) => {
       const item = mockFileSystem[id]
+      
+      if (!item) {
+        throw new Error(`Item not found: ${id}`)
+      }
+      
       return {
         id,
         name: item.name,
@@ -140,18 +193,29 @@ export default function DriveClone() {
   }
 
   // Get current folder contents
-  const getCurrentContents = () => {
+  const getCurrentContents = (): ContentItem[] => {
     const currentFolder = getCurrentFolder()
-    if (!currentFolder.children) return []
+    
+    if (!currentFolder.children || currentFolder.children.length === 0) {
+      return []
+    }
 
-    return currentFolder.children.map((id) => ({
-      id,
-      ...mockFileSystem[id],
-    }))
+    return currentFolder.children.map((id) => {
+      const item = mockFileSystem[id]
+      
+      if (!item) {
+        throw new Error(`Item not found: ${id}`)
+      }
+      
+      return {
+        ...item,
+        id,
+      }
+    })
   }
 
   // Handle folder click
-  const handleItemClick = (item) => {
+  const handleItemClick = (item: ContentItem) => {
     if (item.type === "folder") {
       setCurrentPath([...currentPath, item.id])
     } else {
@@ -162,7 +226,7 @@ export default function DriveClone() {
   }
 
   // Handle breadcrumb click
-  const handleBreadcrumbClick = (index) => {
+  const handleBreadcrumbClick = (index: number) => {
     setCurrentPath(currentPath.slice(0, index + 1))
   }
 
@@ -226,7 +290,7 @@ export default function DriveClone() {
                     {item.type === "folder" ? (
                       <FolderIcon className="h-5 w-5 text-yellow-400" />
                     ) : (
-                      getFileIcon(item.extension)
+                      getFileIcon((item as FileItem).extension)
                     )}
                   </div>
                   <div className="flex items-center">{item.name}</div>
